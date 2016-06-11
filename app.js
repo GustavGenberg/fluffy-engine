@@ -2,6 +2,8 @@ var express = require('express');
 var http = require('http');
 var io = require('socket.io');
 var chalk = require('chalk');
+var random = require('./random');
+var uuid = require('node-uuid');
 
 var app = express();
 
@@ -37,14 +39,15 @@ var ServerNetwork = function () {
 	log( 'blue' , 'ServerNetwork Module init');
 
 	this.Messages = [];
+	this.Fake_Lag_MS = 0;
 
 	var _this = this;
 
 	socket.on('connection', (Client) => {
 
-		log('white', 'User Connected');
+		var ID = server.Connection( Client );
 
-		server.Connection( Client );
+		log('white', ' :: User :: Connected | ' + ID);
 
 		Client.on('Key', (Data) => {
 
@@ -67,6 +70,26 @@ var ServerNetwork = function () {
 
 			}
 
+			if(cmd == '/sv_fake_lag') {
+				this.Fake_Lag_MS = val;
+			}
+
+			if(cmd == '/sv_exit') {
+				process.exit();
+			}
+
+			log('blue', ' :: Command :: Got following command packet: { Cmd: '+cmd+', Val: '+val+' }');
+
+		});
+
+
+
+		Client.on('disconnect', (e) => {
+
+			log('white', ' :: User :: Disconnected | ' + ID + ' | ' + e);
+
+			server.Disconnect(Client, e, ID);
+
 		});
 
 	});
@@ -77,7 +100,9 @@ ServerNetwork.prototype.Send = function(Packet, Val, Socket) {
 
 	Socket = Socket || socket;
 
-	Socket.emit(Packet, Val);
+	setTimeout(function () {
+		Socket.emit(Packet, Val);
+	}, this.Fake_Lag_MS);
 
 };
 
@@ -114,10 +139,10 @@ Entity.prototype.applyInput = function (input) {
 
 var Server = function () {
 
-	this.clients = [];
-	this.entities = [];
+	this.clients = { };
+	this.entities = { };
 
-	this.sockets = [];
+	this.sockets = { };
 
 	this.last_processed_input = [];
 
@@ -126,20 +151,32 @@ var Server = function () {
 };
 
 Server.prototype.Connection = function(Socket) {
-		
-	this.sockets.push(Socket);
+
+	var ID = uuid();
 
 	var entity = new Entity();
-	entity.entity_id = this.clients.length;
+	entity.entity_id = ID;
 
-	entity.x = 5;
-	entity.y = 5;
+	this.sockets[ID] = Socket;
+
+	entity.x = random(50, 450);
+	entity.y = random(50, 450);
 	entity.speed = 200;
 
-	this.entities.push(entity);
-	this.clients.push(Socket);
+	this.entities[ID] = entity;
+	this.clients[ID] = Socket;
 
 	this.network.Send('Connected', entity, Socket);
+
+	return entity.entity_id;
+
+};
+
+Server.prototype.Disconnect = function(Socket, Event, ID) {
+	
+	delete this.sockets[ID];
+	delete this.entities[ID];
+	delete this.clients[ID];
 
 };
 
@@ -161,7 +198,7 @@ Server.prototype.validateInput = function(input) {
 };
 
 Server.prototype.processInputs = function() {
-		
+
 	while ( true ) {
 
 		var message = this.network.getMessages();
@@ -183,22 +220,25 @@ Server.prototype.sendWorldState = function() {
 	var worldState = [];
 	var num_clients = this.clients.length;
 
-	for ( var i = 0; i < num_clients; i++ ) {
-		var entity = this.entities[i];
+	for ( Client in this.clients ) {
+		var entity = this.entities[Client];
+
 		worldState.push({
 			entity_id: entity.entity_id,
 			x: entity.x,
 			y: entity.y,
 			speed: entity.speed,
-			last_processed_input: this.last_processed_input[i]
+			last_processed_input: this.last_processed_input[Client],
+			timestamp: _now()
 		});
 
 	}
 
-	for ( var i = 0; i < this.sockets.length; i++ ) {
-		var Socket = this.sockets[i];
+	for ( Socket in this.sockets ) {
+		Socket = this.sockets[Socket];
 
 		this.network.Send('serverstate', worldState, Socket);
+
 	}
 
 };
@@ -206,7 +246,12 @@ Server.prototype.sendWorldState = function() {
 var server = new Server();
 
 var updateServer = function() {
+
+
   server.update();
+
+
+
 };
 
 var server_interval;

@@ -1,0 +1,21 @@
+{
+  "name": "gabrielgambetta",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Bots.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GustavGenberg/fluffy-engine.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GustavGenberg/fluffy-engine/issues"
+  },
+  "homepage": "https://github.com/GustavGenberg/fluffy-engine#readme"
+}
