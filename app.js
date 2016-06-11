@@ -203,7 +203,7 @@ Server.prototype.processInputs = function() {
 
 		var message = this.network.getMessages();
 
-		if(!message) break;
+		if(!message || !this.entities[message.entity_id]) break;
 
 		if(this.validateInput(message)) {
 			var id = message.entity_id;
@@ -216,6 +216,8 @@ Server.prototype.processInputs = function() {
 };
 
 Server.prototype.sendWorldState = function() {
+
+	var _this = this;
 
 	var worldState = [];
 	var num_clients = this.clients.length;
@@ -234,24 +236,39 @@ Server.prototype.sendWorldState = function() {
 
 	}
 
-	for ( Socket in this.sockets ) {
-		Socket = this.sockets[Socket];
+	
 
-		this.network.Send('serverstate', worldState, Socket);
+	var A = function () {
+
+		if(worldState.length == Object.keys(_this.clients).length) {
+			for ( Socket in _this.sockets ) {
+				Socket = _this.sockets[Socket];
+
+				_this.network.Send('serverstate', worldState, Socket);
+
+			}
+		} else {
+			A();
+		}
 
 	}
 
+	if(Object.keys(_this.clients).length) A();
 };
 
 var server = new Server();
 
+server.lastUpdate = _now();
+
 var updateServer = function() {
+
 
 
   server.update();
 
 
-
+  console.log('Last-Update: ' + (_now() - server.lastUpdate) + ' ms; ');
+  server.lastUpdate = _now();
 };
 
 var server_interval;

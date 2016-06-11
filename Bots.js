@@ -14,6 +14,10 @@ var Bot = function (id) {
 	this.input_sequence_number = 0;
 	this.connected = false;
 	this.lastInputSent = 0;
+
+	this.Last = 0;
+	this.Input = true;
+
 };
 
 Bot.prototype.Connect = function() {
@@ -70,12 +74,12 @@ for ( var i = 0; i < NumBots; i++ ) {
 
 	setTimeout(function () {
 
-		Bots[BotID] = new Bot ( BotID );
+		Bots.push( new Bot ( BotID ) );
 		Bots[BotID].Connect();
 
-	}, BotID * 100);
+		BotID++;
 
-	BotID++;
+	}, BotID * 200);
 
 }
 
@@ -99,20 +103,27 @@ setInterval(function () {
 
 	// And when i've got a interval running, i can use it to send packets to server, to simulate a real client.
 
-	for ( var i = 0; i < NumBots; i++ ) {
+	for ( var i in Bots ) {
 
-		if( Bots[i] && Bots[i].entity_id && Bots[i].connected ) {
+		if( Bots[i] && Bots[i].connected ) {
 
 			var _this = Bots[i];
 
+			_this.Last++;
+
 			var input = {
 
-				press_time: (_this.lastInputSent == 37) ? 0.016 : -0.016,
-				key: _this.lastInputSent
+				press_time: (_this.Input) ? 0.016 : -0.016,
+				key: 39
 
 			};
 
-			_this.lastInputSent = (_this.lastInputSent == 39) ? 37 : 39
+			if(_this.Last >= 50) {
+				_this.Last = 0;
+				_this.Input = !_this.Input;
+			}
+
+			// _this.lastInputSent = (_this.lastInputSent == 39) ? 37 : 39
 
 			input.input_sequence_number = _this.input_sequence_number++;
 			input.entity_id = _this.entity_id;
@@ -123,4 +134,4 @@ setInterval(function () {
 
 	}
 
-}, 1000 / 60);
+}, 1000 / 1);

@@ -41,7 +41,7 @@
 		},
 		Prediction: false,
 		Reconciliation: false,
-		Interpolation: true
+		Interpolation: false
 	};
 
 	document.getElementById('Console').onchange = function () {
@@ -69,6 +69,11 @@
 			if( cmd == '/p' ) {
 				Config.Prediction = !Config.Prediction;
 			}
+
+			if( cmd == '/i' ) {
+				Config.Interpolation = !Config.Interpolation;
+			}
+
 
 			if( cmd == '/ss' ) {
 				Config.Server.show_server_pos = !Config.Server.show_server_pos;
@@ -375,7 +380,7 @@
 
 			var entity = Entities[i];
 
-			if(entity.entity_id !== client.entity_id && entity.last_updated_timestamp < _now() - 1 * 1000) {
+			if(entity.entity_id !== client.entity_id && entity.last_updated_timestamp < _now() - 5 * 1000) {
 				delete client.entities[entity.entity_id];
 				continue;
 			}
